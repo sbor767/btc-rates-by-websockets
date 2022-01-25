@@ -1,10 +1,4 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  Post,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { UserService } from '../services/user.service';
 import { UserIdDto } from '../dto/user-id.dto';
 
@@ -14,13 +8,7 @@ export class UserController {
 
   @Post('notify')
   @HttpCode(200)
-  async notifyCurrentRate(
-    @Body() { userId }: UserIdDto,
-  ): Promise<void | never> {
-    if (!(await this.userService.userExist(userId))) {
-      throw new UnauthorizedException('Unauthorized');
-    }
-
-    this.userService.notifyUserForBtcRate(userId);
+  notifyCurrentRate(@Body() { userId }: UserIdDto) {
+    return this.userService.notifyUserForBtcRate(userId.toString());
   }
 }

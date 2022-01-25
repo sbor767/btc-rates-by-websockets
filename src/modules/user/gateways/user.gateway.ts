@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import {
   SubscribeMessage,
   WebSocketGateway,
@@ -8,30 +9,43 @@ import {
   ConnectedSocket,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
+import { UserCacheDbService } from '../../cache/services/user-cache-db.service';
 
-// @WebSocketGateway()
 @WebSocketGateway({ namespace: 'user' })
 export class UserGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
-  private logger: Logger = new Logger('UserGateway');
+  private readonly logger = new Logger(UserGateway.name);
+
+  constructor(private readonly userCacheService: UserCacheDbService) {}
 
   @WebSocketServer()
   server: Server;
 
   afterInit(server: any) {
-    // throw new Error('Method not implemented.'); - comment this
     this.logger.log('Initialized');
   }
 
   async handleConnection(client: Socket, ...args: any[]) {
-    this.logger.log(`Client connected: ${client.id}`);
+    const { id: clientSession } = client;
+
+    // @TODO: Fix next by class-validator
+    const { id } = client.handshake.query;
+    if (typeof id !== 'string' || !Number.isInteger(+id)) {
+      this.logger.warn(`The user did not provide an id. [id=${id}]`);
+      // https://stackoverflow.com/a/66184318
+      client.disconnect();
+      return;
+    }
+
+    await this.userCacheService.set(id, clientSession);
+    this.logger.log(`User with id=${id} connected with session: ${client.id}`);
   }
 
-  async handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
+  async handleDisconnect({ id: clientSession }: Socket) {
+    await this.userCacheService.delete(clientSession);
+    this.logger.log(`Client disconnected: ${clientSession}`);
   }
 
   @SubscribeMessage('message')
@@ -66,7 +80,7 @@ export class UserGateway
     return message;
   }
 
-  async notifyUserAboutRate(userId: number, btcRate: number) {
+  async notifyUserAboutRate(session: string, btcRate: number) {
     this.server.emit('rate', btcRate);
   }
 }
