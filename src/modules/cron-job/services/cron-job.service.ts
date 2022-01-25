@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Interval, Timeout } from '@nestjs/schedule';
 import { CurrencyRateDbService } from '../../cache/services/currency-rate-db.service';
 import { CryptocurrencyRateService } from '../../cryptocurrency-rate/services/cryptocurrency-rate.service';
 
@@ -11,11 +11,7 @@ export class CronJobService {
     private readonly currencyRateDbService: CurrencyRateDbService,
   ) {}
 
-  @Cron('0 */2 * * * *')
-  async handleCheckForCryptocurrencyRate(): Promise<void> {
-    this.logger.debug(
-      'handleCheckForAllConfirmedPaymentsCron - Called every 2 minutes',
-    );
+  async setRateToDb() {
     const rate = await this.cryptocurrencyRateService.getRate();
     await this.currencyRateDbService.set(rate);
     this.logger.debug(
@@ -25,5 +21,17 @@ export class CronJobService {
         2,
       )}`,
     );
+  }
+
+  @Timeout(0)
+  handleOnceOnStart(): Promise<void> {
+    this.logger.debug('handleOnceOnStart()');
+    return this.setRateToDb();
+  }
+
+  @Interval(2 * 60 * 1000)
+  handleEachTwoMinutes(): Promise<void> {
+    this.logger.debug('handleEachTwoMinutes - Called each 2 minutes');
+    return this.setRateToDb();
   }
 }
