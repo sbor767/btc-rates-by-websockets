@@ -21,10 +21,12 @@ export class UserGateway
   @WebSocketServer()
   server: Server;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   afterInit(server: any) {
     this.logger.log('Initialized');
   }
 
+  /* eslint @typescript-eslint/no-unused-vars: ["off", {"argsIgnorePattern": "args"}]*/
   async handleConnection(client: Socket, ...args: any[]) {
     const { id: clientSession } = client;
 
