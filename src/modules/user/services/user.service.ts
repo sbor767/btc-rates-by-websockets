@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { UserGateway } from '../gateways/user.gateway';
 import { UserCacheDbService } from '../../cache/services/user-cache-db.service';
+import { CryptocurrencyRateService } from '../../cryptocurrency-rate/services/cryptocurrency-rate.service';
 
 @Injectable()
 export class UserService {
@@ -8,6 +9,7 @@ export class UserService {
 
   constructor(
     private readonly userGateway: UserGateway,
+    private readonly cryptocurrencyRateService: CryptocurrencyRateService,
     private readonly userCacheService: UserCacheDbService,
   ) {}
 
@@ -19,8 +21,14 @@ export class UserService {
       );
     }
 
-    const rate = 1000;
-    this.logger.log(`Current BTC rate for userId: ${userId} is ${rate}`);
+    const rate = await this.cryptocurrencyRateService.getRate();
+    this.logger.log(
+      `Current BTC rate for userId: ${userId} is ${JSON.stringify(
+        rate,
+        null,
+        2,
+      )}`,
+    );
     this.userGateway.notifyUserAboutRate(session, rate);
   }
 }

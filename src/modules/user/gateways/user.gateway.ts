@@ -11,6 +11,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { UserCacheDbService } from '../../cache/services/user-cache-db.service';
+import { CryptocurrencyRateResponse } from '../../cryptocurrency-rate/interfaces/cryptocurrency-rate-response.interface';
 
 @WebSocketGateway({ namespace: 'user' })
 export class UserGateway
@@ -80,7 +81,7 @@ export class UserGateway
     return message;
   }
 
-  async notifyUserAboutRate(session: string, btcRate: number) {
-    this.server.emit('rate', btcRate);
+  async notifyUserAboutRate(session: string, rate: CryptocurrencyRateResponse) {
+    this.server.emit('rate', rate);
   }
 }
