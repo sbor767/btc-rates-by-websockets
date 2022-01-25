@@ -1,12 +1,9 @@
 import { Logger } from '@nestjs/common';
 import {
-  SubscribeMessage,
   WebSocketGateway,
   OnGatewayInit,
   WebSocketServer,
   OnGatewayConnection,
-  MessageBody,
-  ConnectedSocket,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
@@ -49,39 +46,7 @@ export class UserGateway
     this.logger.log(`Client disconnected: ${clientSession}`);
   }
 
-  @SubscribeMessage('message')
-  handleMessage(client: any, payload: any): string {
-    console.log('message', {
-      // client,
-      payload,
-    });
-    return 'Hello world!';
-  }
-
-  @SubscribeMessage('send_message')
-  // @SubscribeMessage('message')
-  async listenForMessages(
-    @MessageBody() content: string,
-    @ConnectedSocket() socket: Socket,
-  ) {
-    console.log('send_message', {
-      content,
-    });
-    // const author = await this.chatService.getUserFromSocket(socket);
-    // const message = await this.chatService.saveMessage(content, author);
-    const message = content + ' [as received]';
-
-    // this.server.sockets.emit('receive_message', message);
-    // this.server.sockets.emit('receive_message', message);
-    // this.server.sockets.emit('receive_message', { name: 'user' }, message);
-    // this.server.sockets.to('user').emit('receive_message', message);
-    // this.server.to('user').emit('receive_message', message);
-    this.server.emit('receive_message', message);
-
-    return message;
-  }
-
   async notifyUserAboutRate(session: string, rate: CryptocurrencyRateResponse) {
-    this.server.emit('rate', rate);
+    this.server.to(session).emit('rate', rate);
   }
 }

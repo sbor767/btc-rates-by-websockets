@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { UserGateway } from '../gateways/user.gateway';
 import { UserCacheDbService } from '../../cache/services/user-cache-db.service';
-import { CryptocurrencyRateService } from '../../cryptocurrency-rate/services/cryptocurrency-rate.service';
+import { CurrencyRateDbService } from '../../cache/services/currency-rate-db.service';
 
 @Injectable()
 export class UserService {
@@ -9,8 +9,8 @@ export class UserService {
 
   constructor(
     private readonly userGateway: UserGateway,
-    private readonly cryptocurrencyRateService: CryptocurrencyRateService,
     private readonly userCacheService: UserCacheDbService,
+    private readonly currencyRateDbService: CurrencyRateDbService,
   ) {}
 
   async notifyUserForBtcRate(userId: string): Promise<void> | never {
@@ -21,7 +21,7 @@ export class UserService {
       );
     }
 
-    const rate = await this.cryptocurrencyRateService.getRate();
+    const rate = await this.currencyRateDbService.get();
     this.logger.log(
       `Current BTC rate for userId: ${userId} is ${JSON.stringify(
         rate,
