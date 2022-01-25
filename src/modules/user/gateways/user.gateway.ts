@@ -32,8 +32,14 @@ export class UserGateway
 
     // @TODO: Fix next by class-validator
     const { id } = client.handshake.query;
-    if (typeof id !== 'string' || !Number.isInteger(+id)) {
-      this.logger.warn(`The user did not provide an id. [id=${id}]`);
+    if (
+      typeof id !== 'string' ||
+      !Number.isInteger(+id) ||
+      (await this.userCacheService.exists(id))
+    ) {
+      this.logger.warn(
+        `The user did not provide an id. [id=${id}] or already connected with the same id`,
+      );
       // https://stackoverflow.com/a/66184318
       client.disconnect();
       return;

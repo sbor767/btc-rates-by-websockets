@@ -20,6 +20,10 @@ export class UserCacheDbService {
     return this.cacheManager.get(userId);
   }
 
+  async exists(userId: string): Promise<boolean> {
+    return !!(await this.cacheManager.get(userId));
+  }
+
   async delete(clientSession: string): Promise<void> {
     const keys = await this.cacheManager.store.keys();
     for (const key of keys) {
