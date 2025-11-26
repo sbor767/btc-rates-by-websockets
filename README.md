@@ -1,73 +1,173 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
+# BTC rates by WebSockets (NestJS demo)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Demo NestJS application that pushes current BTC/USD rate to connected users via WebSocket (Socket.IO).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+- A scheduled job periodically fetches the BTC/USD rate and stores it in cache.
+- Users connect via WebSocket (Socket.IO `namespace: 'user'`) with a numeric `id`.
+- HTTP endpoint `POST /user/notify` sends the cached rate to the corresponding WebSocket client.
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
 ## Installation
 
 ```bash
-$ npm install
+npm install
 ```
 
 ## Running the app
 
 ```bash
 # development
-$ npm run start
+npm run start
 
 # watch mode
-$ npm run start:dev
+npm run start:dev
 
 # production mode
-$ npm run start:prod
+npm run start:prod
 ```
 
 ## Test
 
 ```bash
 # unit tests
-$ npm run test
+npm run test
 
 # e2e tests
-$ npm run test:e2e
+npm run test:e2e
 
 # test coverage
-$ npm run test:cov
+npm run test:cov
 ```
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Manual testing
 
-## Stay in touch
+### 1. Run the application
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```bash
+npm install
+npm run start:dev
+```
+
+By default the app listens on port `3000` (or `APP_PORT` from environment).
+
+### 2. Testing HTTP API with Insomnia (or Postman)
+
+Notify a user about current BTC/USD rate via WebSocket:
+
+- **Method:** `POST`
+- **URL:** `http://localhost:3000/user/notify`
+- **Body (JSON):**
+
+  ```json
+  {
+    "userId": 1
+  }
+  ```
+
+Notes:
+
+- `userId` must be a number.
+- If validation fails or there is no active WebSocket session for this user, the API returns `400 Bad Request`.
+- On success the API returns `200 OK` and sends the current rate to the user via WebSocket (the HTTP response body is empty).
+
+### 3. Testing WebSocket notifications with Socket.IO Test Client
+
+This project exposes a Socket.IO gateway under the `user` namespace.
+
+You can test it using the Chrome extension **Socket.IO Test Client** (id `ophmdkgfcjapomjdpfobjfbihojchbko`).
+
+1. Open the extension (for example by navigating to):
+
+   ```text
+   chrome-extension://ophmdkgfcjapomjdpfobjfbihojchbko/index.html
+   ```
+
+2. Open **Settings** and use:
+
+    - **Socket.IO Server Address:**
+
+      ```text
+      http://127.0.0.1:3000/user
+      ```
+
+    - **Custom Headers Object (JSON):**
+
+      ```json
+      {
+        "transports": ["websocket"],
+        "query": {
+          "id": "1"
+        }
+      }
+      ```
+
+3. Click **Set**, then **Connect**.
+
+   In the NestJS logs you should see something like:
+
+   ```text
+   [UserGateway] User with id=1 connected with session: <sessionId>
+   ```
+
+4. Add a listener for the `rate` event in the extension UI.
+5. From Insomnia call:
+
+   ```http
+   POST http://localhost:3000/user/notify
+   Content-Type: application/json
+
+   {
+     "userId": 1
+   }
+   ```
+
+6. You should see an incoming `rate` event in the Socket.IO Test Client similar to:
+
+   ```json
+   {
+     "currencyBase": "BTC",
+     "currencyQuote": "USD",
+     "rate": 87604.56
+   }
+   ```
+
+---
+
+## CORS configuration (development only)
+
+For easier local testing, CORS is enabled both in the HTTP app and in the WebSocket gateway:
+
+```ts
+// main.ts
+app.enableCors({
+  origin: '*',
+});
+
+// user.gateway.ts
+@WebSocketGateway({
+  namespace: 'user',
+  cors: {
+    origin: '*',
+  },
+})
+export class UserGateway {
+  // ...
+}
+```
+
+> **Important: this configuration is intended only for development.**
+>
+> `origin: '*'` allows requests from any domain, which is convenient for local testing but is a security risk in production.
+> In a real deployment you should:
+>
+> - restrict `origin` to specific trusted domains (for example, your frontend URLs); or
+> - configure CORS via environment-specific configuration so that `'*'` is never used in production.
+
+---
 
 ## License
 
-Nest is [MIT licensed](LICENSE).
+Nest is MIT licensed.
