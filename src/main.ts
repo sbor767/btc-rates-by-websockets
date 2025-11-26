@@ -9,6 +9,10 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
+  app.enableCors({
+    origin: '*',
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
