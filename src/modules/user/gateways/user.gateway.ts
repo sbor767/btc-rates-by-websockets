@@ -10,7 +10,12 @@ import { Server, Socket } from 'socket.io';
 import { UserCacheDbService } from '../../cache/services/user-cache-db.service';
 import { CryptocurrencyRateResponse } from '../../cryptocurrency-rate/interfaces/cryptocurrency-rate-response.interface';
 
-@WebSocketGateway({ namespace: 'user' })
+@WebSocketGateway({
+  namespace: 'user',
+  cors: {
+    origin: '*',
+  },
+})
 export class UserGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
